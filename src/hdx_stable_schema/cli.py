@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import click
+import sys
 
-from pathlib import Path
+import click
+import requests
 
 from hdx_stable_schema.metadata_processor import (
-    read_metadata,
+    read_metadata_from_hdx,
+    search_by_lucky_dip,
     summarise_resource_changes,
     summarise_schema,
+    summarise_resource,
     print_schema,
 )
 
@@ -26,31 +29,48 @@ def hdx_schema() -> None:
 
 
 @hdx_schema.command(name="show_schema")
-def show_schema():
+@click.option(
+    "--dataset_name",
+    is_flag=False,
+    default=None,
+    help="a dataset name or pattern on which to filter list",
+)
+def show_schema(dataset_name: str):
     """Show a dataset with schema markup"""
 
-    climada_litpop_file_path = (
-        Path(__file__).resolve().parents[2]
-        / "tests"
-        / "fixtures"
-        # / "2024-12-03-climada-litpop-dataset.json"
-        / "2024-12-04-insecurity-insight-explosive-weapons.json"
-    )
-
-    metadata = read_metadata(climada_litpop_file_path)
+    if dataset_name is not None:
+        try:
+            metadata = read_metadata_from_hdx(dataset_name)
+        except requests.exceptions.HTTPError as exception_:
+            if exception_.args[0].startswith("404"):
+                print(f"Dataset '{dataset_name}' was not found", flush=True)
+                sys.exit()
+            else:
+                raise
+    else:
+        metadata = search_by_lucky_dip()
 
     # Dataset intro
     print_banner([metadata["result"]["title"], "Dataset Overview"])
 
     # Summarise and print resource changes
-    resource_changes = summarise_resource_changes(metadata)
-
     print("Resource list:", flush=True)
+    resource_summary = summarise_resource(metadata)
+    resource_changes = summarise_resource_changes(metadata)
     for i, resource_name in enumerate(resource_changes.keys(), start=1):
         checks = resource_changes[resource_name]["checks"]
-        print(f"{i:>2d}. {resource_name} ({len(checks)} file structure checks)", flush=True)
+        print(f"\n{i:>2d}. {resource_name}", flush=True)
+        print(
+            f"\tFilename: {resource_summary[resource_name]['filename']} "
+            f"\n\tFormat: {resource_summary[resource_name]['format']}"
+            f"\n\tSheets: {' ,'.join(resource_summary[resource_name]['sheets'])}",
+            flush=True,
+        )
+        if resource_summary[resource_name]["in_quarantine"]:
+            print("\t**in quarantine**", flush=True)
+        print(f"\tChecks ({len(checks)} file structure checks):", flush=True)
         for check in checks:
-            print(f"\t{check}", flush=True)
+            print(f"\t\t{check}", flush=True)
 
     # Summarise and print schemas
     schemas = summarise_schema(metadata)

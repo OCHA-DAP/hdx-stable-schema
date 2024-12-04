@@ -12,6 +12,7 @@ authors = [
 
 dependencies = [
   "click",
+  "requests==2.32.3",
   "pytest",
   "pytest-cov",
   "black==23.10.0",
