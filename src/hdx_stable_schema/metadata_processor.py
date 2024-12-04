@@ -34,7 +34,7 @@ def summarise_resource_changes(metadata: dict) -> dict:
                     change_indicator += f"{check['timestamp'][0:10]}"
                     if len(check["sheet_changes"]) != 0:
                         change_indicator += (
-                            f"* {len(check['sheet_changes'])} "
+                            f"* {len(check['sheet_changes'])} schema changes in field: "
                             f"{check['sheet_changes'][0]['changed_fields'][0]['field']}"
                         )
                     resource_changes[resource["name"]]["checks"].extend([change_indicator])
@@ -48,18 +48,17 @@ def summarise_schema(metadata: dict) -> dict:
         if "fs_check_info" in resource.keys():
             check = resource["fs_check_info"][-1]
             if check["message"] == "File structure check completed":
-                header_hash = check["hxl_proxy_response"]["sheets"][0]["header_hash"]
-                if header_hash not in schemas:
-                    schemas[header_hash] = {}
-                    schemas[header_hash]["shared_with"] = [resource["name"]]
-                    schemas[header_hash]["headers"] = check["hxl_proxy_response"]["sheets"][0][
-                        "headers"
-                    ]
-                    schemas[header_hash]["hxl_headers"] = check["hxl_proxy_response"]["sheets"][0][
-                        "hxl_headers"
-                    ]
-                else:
-                    schemas[header_hash]["shared_with"].append(resource["name"])
+                # print(json.dumps(check, indent=4), flush=True)
+                for sheet in check["hxl_proxy_response"]["sheets"]:
+                    header_hash = sheet["header_hash"]
+                    if header_hash not in schemas:
+                        schemas[header_hash] = {}
+                        schemas[header_hash]["sheet"] = sheet["name"]
+                        schemas[header_hash]["shared_with"] = [resource["name"]]
+                        schemas[header_hash]["headers"] = sheet["headers"]
+                        schemas[header_hash]["hxl_headers"] = sheet["hxl_headers"]
+                    else:
+                        schemas[header_hash]["shared_with"].append(resource["name"])
             else:
                 print(
                     "Error, final fs_check_info is not 'File structure check completed'", flush=True
@@ -71,6 +70,10 @@ def summarise_schema(metadata: dict) -> dict:
 def print_schema(schema: dict) -> list[dict]:
     row_template = {"Column": "", "Type": "", "Label": "", "Description": ""}
     rows = []
+
+    if schema["hxl_headers"] is None:
+        schema["hxl_headers"] = [""] * len(schema["headers"])
+
     for header, hxl_header in zip(schema["headers"], schema["hxl_headers"]):
         row = row_template.copy()
         row["Column"] = header

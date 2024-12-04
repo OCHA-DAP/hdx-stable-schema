@@ -33,7 +33,8 @@ def show_schema():
         Path(__file__).resolve().parents[2]
         / "tests"
         / "fixtures"
-        / "2024-12-03-climada-litpop-dataset.json"
+        # / "2024-12-03-climada-litpop-dataset.json"
+        / "2024-12-04-insecurity-insight-explosive-weapons.json"
     )
 
     metadata = read_metadata(climada_litpop_file_path)
@@ -42,8 +43,9 @@ def show_schema():
     print_banner([metadata["result"]["title"], "Dataset Overview"])
 
     # Summarise and print resource changes
-    print("Resource list:", flush=True)
     resource_changes = summarise_resource_changes(metadata)
+
+    print("Resource list:", flush=True)
     for i, resource_name in enumerate(resource_changes.keys(), start=1):
         checks = resource_changes[resource_name]["checks"]
         print(f"{i:>2d}. {resource_name} ({len(checks)} file structure checks)", flush=True)
@@ -52,13 +54,15 @@ def show_schema():
 
     # Summarise and print schemas
     schemas = summarise_schema(metadata)
+
     if len(schemas) == 1:
         print("\nFound one common schema", flush=True)
     else:
         print(f"\nFound {len(schemas)} common schemas")
     for i, schema in enumerate(schemas.items(), start=1):
         print(
-            f"\nSchema {i}, shared by the following {len(schema[1]['shared_with'])} resources:\n",
+            f"\nSchema {i}, shared by the following {len(schema[1]['shared_with'])} "
+            f"resources on sheet '{schema[1]['sheet']}':\n",
             flush=True,
         )
         print_list(schema[1]["shared_with"])
