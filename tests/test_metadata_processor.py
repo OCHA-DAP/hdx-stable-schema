@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from pathlib import Path
+
+from hdx_stable_schema.metadata_processor import read_metadata_from_file
+
 
 def test_read_metadata():
     climada_litpop_file_path = (
@@ -12,3 +16,5 @@ def test_read_metadata():
     )
 
     metadata = read_metadata_from_file(climada_litpop_file_path)
+
+    assert metadata is not None

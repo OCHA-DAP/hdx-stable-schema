@@ -56,7 +56,7 @@ def search_by_lucky_dip() -> dict:
     response.raise_for_status()
     n_datasets = response.json()["result"]["count"]
 
-    # Now do a second query with a random start, using the first to get the range of offsets possible
+    # Now do a 2nd query with a random start, using the first to get the range of possible offsets
     # Make a random offset in the range 0, n datasets
     random_start = randrange(0, n_datasets)
     # query with offset (start) = random, limit (rows) = 1
@@ -131,6 +131,31 @@ def summarise_resource_changes(metadata: dict) -> dict:
                         )
 
                     resource_changes[resource["name"]]["checks"].extend([change_indicator])
+        elif "shape_info" in resource.keys():
+            previous_bounding_box = ""
+            previous_headers = set()
+            for check in resource["shape_info"]:
+                change_indicator = ""
+                first_check = True
+                if check["message"] == "Import successful":
+                    # (json.dumps(check, indent=4), flush=True)
+                    headers = {x["field_name"] for x in check["layer_fields"]}
+                    bounding_box = check["bounding_box"]
+                    change_indicator += f"{check['timestamp'][0:10]}"
+                    if not first_check:
+                        if (bounding_box != previous_bounding_box) or (previous_headers != headers):
+                            change_indicator += "* "
+                        if bounding_box != previous_bounding_box:
+                            change_indicator += "bounding box change "
+                        if previous_headers != headers:
+                            change_indicator += "header change"
+
+                    previous_headers = headers
+                    previous_bounding_box = bounding_box
+                    first_check = False
+                    resource_changes[resource["name"]]["checks"].extend([change_indicator])
+                # else:
+                #     print(json.dumps(check, indent=4), flush=True)
 
     return resource_changes
 
@@ -159,23 +184,34 @@ def summarise_schema(metadata: dict) -> dict:
                 )
         elif "shape_info" in resource.keys():
             # print(json.dumps(resource["shape_info"][-1], indent=4), flush=True)
-            check = resource["shape_info"][-1]
-            if check["message"] == "Import successful":
-                # print(json.dumps(check, indent=4), flush=True)
-                headers = [x["field_name"] for x in check["layer_fields"]]
-                data_types = [x["data_type"] for x in check["layer_fields"]]
-                header_hash = hash_row(headers)
-                if header_hash not in schemas:
-                    schemas[header_hash] = {}
-                    schemas[header_hash]["sheet"] = "__DEFAULT__"
-                    schemas[header_hash]["shared_with"] = [resource["name"]]
-                    schemas[header_hash]["headers"] = headers
-                    schemas[header_hash]["hxl_headers"] = [""] * len(headers)
-                    schemas[header_hash]["data_types"] = data_types
-                else:
-                    schemas[header_hash]["shared_with"].append(resource["name"])
-            else:
-                print("Error, final shape_info is not 'Import successful'", flush=True)
+            success = False
+            for check in reversed(resource["shape_info"]):
+                if check["message"] == "Import successful":
+                    # print(json.dumps(check, indent=4), flush=True)
+                    headers = [x["field_name"] for x in check["layer_fields"]]
+                    data_types = [x["data_type"] for x in check["layer_fields"]]
+                    header_hash = hash_row(headers)
+                    if header_hash not in schemas:
+                        schemas[header_hash] = {}
+                        schemas[header_hash]["sheet"] = "__DEFAULT__"
+                        schemas[header_hash]["shared_with"] = [resource["name"]]
+                        schemas[header_hash]["headers"] = headers
+                        schemas[header_hash]["hxl_headers"] = [""] * len(headers)
+                        schemas[header_hash]["data_types"] = data_types
+                    else:
+                        schemas[header_hash]["shared_with"].append(resource["name"])
+                    success = True
+                    break
+            if not success:
+                print(
+                    (
+                        f"\nError, could not find an 'Import successful' check "
+                        f"for {resource['name']}\n"
+                        f"final message was '{resource['shape_info'][-1]['message']}'"
+                    ),
+                    flush=True,
+                )
+                # print(json.dumps(resource["shape_info"], indent=4), flush=True)
 
     return schemas
 
