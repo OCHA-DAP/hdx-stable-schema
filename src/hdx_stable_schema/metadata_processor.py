@@ -8,6 +8,8 @@ import requests
 
 from pathlib import Path
 
+from hxl.input import hash_row
+
 from hdx_stable_schema.utilities import print_table_from_list_of_dicts
 
 CKAN_API_ROOT_URL = "https://data.humdata.org/api/action/"
@@ -22,6 +24,8 @@ def read_metadata_from_file(file_path: str | Path) -> dict:
     for resource in metadata_dict["result"]["resources"]:
         if "fs_check_info" in resource.keys():
             resource["fs_check_info"] = json.loads(resource["fs_check_info"])
+        if "shape_info" in resource.keys():
+            resource["shape_info"] = json.loads(resource["shape_info"])
 
     return metadata_dict
 
@@ -37,6 +41,8 @@ def read_metadata_from_hdx(dataset_name: str) -> dict:
     for resource in metadata_dict["result"]["resources"]:
         if "fs_check_info" in resource.keys():
             resource["fs_check_info"] = json.loads(resource["fs_check_info"])
+        if "shape_info" in resource.keys():
+            resource["shape_info"] = json.loads(resource["shape_info"])
     return metadata_dict
 
 
@@ -70,6 +76,8 @@ def search_by_lucky_dip() -> dict:
     for resource in metadata_dict["result"]["resources"]:
         if "fs_check_info" in resource.keys():
             resource["fs_check_info"] = json.loads(resource["fs_check_info"])
+        if "shape_info" in resource.keys():
+            resource["shape_info"] = json.loads(resource["shape_info"])
 
     return metadata_dict
 
@@ -142,12 +150,32 @@ def summarise_schema(metadata: dict) -> dict:
                         schemas[header_hash]["shared_with"] = [resource["name"]]
                         schemas[header_hash]["headers"] = sheet["headers"]
                         schemas[header_hash]["hxl_headers"] = sheet["hxl_headers"]
+                        schemas[header_hash]["data_types"] = [""] * len(sheet["headers"])
                     else:
                         schemas[header_hash]["shared_with"].append(resource["name"])
             else:
                 print(
                     "Error, final fs_check_info is not 'File structure check completed'", flush=True
                 )
+        elif "shape_info" in resource.keys():
+            # print(json.dumps(resource["shape_info"][-1], indent=4), flush=True)
+            check = resource["shape_info"][-1]
+            if check["message"] == "Import successful":
+                # print(json.dumps(check, indent=4), flush=True)
+                headers = [x["field_name"] for x in check["layer_fields"]]
+                data_types = [x["data_type"] for x in check["layer_fields"]]
+                header_hash = hash_row(headers)
+                if header_hash not in schemas:
+                    schemas[header_hash] = {}
+                    schemas[header_hash]["sheet"] = "__DEFAULT__"
+                    schemas[header_hash]["shared_with"] = [resource["name"]]
+                    schemas[header_hash]["headers"] = headers
+                    schemas[header_hash]["hxl_headers"] = [""] * len(headers)
+                    schemas[header_hash]["data_types"] = data_types
+                else:
+                    schemas[header_hash]["shared_with"].append(resource["name"])
+            else:
+                print("Error, final shape_info is not 'Import successful'", flush=True)
 
     return schemas
 
@@ -159,10 +187,11 @@ def print_schema(schema: dict) -> list[dict]:
     if schema["hxl_headers"] is None:
         schema["hxl_headers"] = [""] * len(schema["headers"])
 
-    for header, hxl_header in zip(schema["headers"], schema["hxl_headers"]):
+    for i in range(0, len(schema["headers"])):
         row = row_template.copy()
-        row["Column"] = header
-        row["Label"] = hxl_header
+        row["Column"] = schema["headers"][i]
+        row["Type"] = schema["data_types"][i]
+        row["Label"] = schema["hxl_headers"][i]
         rows.append(row)
 
     print_table_from_list_of_dicts(rows)
