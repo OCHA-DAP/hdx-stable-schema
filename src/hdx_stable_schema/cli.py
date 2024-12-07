@@ -52,6 +52,7 @@ def show_schema(dataset_name: str):
 
     # Dataset intro
     print_banner([metadata["result"]["title"], "Dataset Overview"])
+    print(f"Dataset name: {metadata['result']['name']}", flush=True)
 
     # Summarise and print resource changes
     print("Resource list:", flush=True)
@@ -63,7 +64,7 @@ def show_schema(dataset_name: str):
         print(
             f"\tFilename: {resource_summary[resource_name]['filename']} "
             f"\n\tFormat: {resource_summary[resource_name]['format']}"
-            f"\n\tSheets: {' ,'.join(resource_summary[resource_name]['sheets'])}",
+            f"\n\tSheets: {', '.join(resource_summary[resource_name]['sheets'])}",
             flush=True,
         )
         if resource_summary[resource_name]["in_quarantine"]:

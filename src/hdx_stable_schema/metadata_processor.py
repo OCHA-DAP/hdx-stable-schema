@@ -96,7 +96,7 @@ def summarise_resource(metadata: dict) -> dict:
                     nrows = sheet["nrows"]
                     ncols = sheet["ncols"]
                     resource_summary[resource["name"]]["sheets"].append(
-                        f"{sheet_name}  (n_columns:{ncols} x n_rows:{nrows})"
+                        f"{sheet_name} (n_columns:{ncols} x n_rows:{nrows})"
                     )
             else:
                 print(

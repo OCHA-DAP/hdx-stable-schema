@@ -90,7 +90,7 @@ def print_table_from_list_of_dicts(
 
 
 def print_list(list_: list, truncate_width: int = 130, max_total_width: int = 150):
-    max_column_width = max([len(x) for x in list_])
+    max_column_width = max([len(x) for x in list_]) + 2
     n_columns = math.floor(max_total_width / (max_column_width))
 
     for i, element in enumerate(list_, start=1):
