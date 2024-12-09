@@ -14,6 +14,16 @@ from hdx_stable_schema.utilities import print_table_from_list_of_dicts
 
 CKAN_API_ROOT_URL = "https://data.humdata.org/api/action/"
 
+SHAPE_INFO_DATA_TYPE_LOOKUP = {
+    "character varying": "string",
+    "integer": "integer",
+    "bigint": "integer",
+    "numeric": "float",
+    "USER-DEFINED": "user-defined",
+    "timestamp with time zone": "timestamp",
+    "date": "date",
+}
+
 
 def read_metadata_from_file(file_path: str | Path) -> dict:
     metadata_dict = {}
@@ -214,7 +224,9 @@ def summarise_schema(metadata: dict) -> dict:
                 if check["message"] == "Import successful":
                     # print(json.dumps(check, indent=4), flush=True)
                     headers = [x["field_name"] for x in check["layer_fields"]]
-                    data_types = [x["data_type"] for x in check["layer_fields"]]
+                    data_types = [
+                        SHAPE_INFO_DATA_TYPE_LOOKUP[x["data_type"]] for x in check["layer_fields"]
+                    ]
                     header_hash = hash_row(headers)
                     if header_hash not in schemas:
                         schemas[header_hash] = {}
