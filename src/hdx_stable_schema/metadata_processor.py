@@ -31,6 +31,14 @@ def read_metadata_from_file(file_path: str | Path) -> dict:
     with open(file_path, encoding="utf-8") as metadata_file:
         metadata_dict = json.load(metadata_file)
 
+    # We do this because we want to handle package_search and package_show results
+    # transparently and they have slightly different formats. It assumes there is just
+    # one dataset record in a package_search response
+
+    if "results" in metadata_dict["result"].keys():
+        assert len(metadata_dict["result"]["results"]) == 1
+        metadata_dict["result"] = metadata_dict["result"]["results"][0]
+
     for resource in metadata_dict["result"]["resources"]:
         if "fs_check_info" in resource.keys():
             resource["fs_check_info"] = json.loads(resource["fs_check_info"])
@@ -106,8 +114,8 @@ def summarise_resource(metadata: dict) -> dict:
         resource_summary[resource["name"]]["sheets"] = []
 
         if "fs_check_info" in resource.keys():
-            check = resource["fs_check_info"][-1]
-            if check["message"] == "File structure check completed":
+            check, error_message = get_last_complete_check(resource, "fs_check_info")
+            if error_message == "Success":
                 # print(json.dumps(check, indent=4), flush=True)
                 for sheet in check["hxl_proxy_response"]["sheets"]:
                     sheet_name = sheet["name"]
@@ -116,34 +124,19 @@ def summarise_resource(metadata: dict) -> dict:
                     resource_summary[resource["name"]]["sheets"].append(
                         f"{sheet_name} (n_columns:{ncols} x n_rows:{nrows})"
                     )
-            else:
-                print(
-                    "Error, final fs_check_info is not 'File structure check completed'", flush=True
-                )
         elif "shape_info" in resource.keys():
-            # print(json.dumps(resource["shape_info"][-1], indent=4), flush=True)
-            success = False
-            for check in reversed(resource["shape_info"]):
-                if check["message"] == "Import successful":
-                    sheet_name = "__DEFAULT__"
-                    ncols = len(check["layer_fields"])
-                    nrows = "N/A"
-                    resource_summary[resource["name"]]["sheets"].append(
-                        f"{sheet_name} (n_columns:{ncols} x n_rows:{nrows})"
-                    )
-                    resource_summary[resource["name"]]["bounding_box"] = check["bounding_box"]
-                    success = True
-                    break
-
-            if not success:
-                print(
-                    (
-                        f"\nError, could not find an 'Import successful' check "
-                        f"for {resource['name']}\n"
-                        f"final message was '{resource['shape_info'][-1]['message']}'"
-                    ),
-                    flush=True,
+            check, error_message = get_last_complete_check(resource, "shape_info")
+            if error_message == "Success":
+                sheet_name = "__DEFAULT__"
+                ncols = len(check["layer_fields"])
+                nrows = "N/A"
+                resource_summary[resource["name"]]["sheets"].append(
+                    f"{sheet_name} (n_columns:{ncols} x n_rows:{nrows})"
                 )
+                resource_summary[resource["name"]]["bounding_box"] = check["bounding_box"]
+
+    if error_message != "Success":
+        print(error_message, flush=True)
 
     return resource_summary
 
@@ -199,9 +192,9 @@ def summarise_schema(metadata: dict) -> dict:
     schemas = {}
     for resource in metadata["result"]["resources"]:
         if "fs_check_info" in resource.keys():
-            check = resource["fs_check_info"][-1]
-            if check["message"] == "File structure check completed":
-                # print(json.dumps(check, indent=4), flush=True)
+            check, error_message = get_last_complete_check(resource, "fs_check_info")
+
+            if error_message == "Success":
                 for sheet in check["hxl_proxy_response"]["sheets"]:
                     header_hash = sheet["header_hash"]
                     if header_hash not in schemas:
@@ -213,44 +206,51 @@ def summarise_schema(metadata: dict) -> dict:
                         schemas[header_hash]["data_types"] = [""] * len(sheet["headers"])
                     else:
                         schemas[header_hash]["shared_with"].append(resource["name"])
-            else:
-                print(
-                    "Error, final fs_check_info is not 'File structure check completed'", flush=True
-                )
         elif "shape_info" in resource.keys():
             # print(json.dumps(resource["shape_info"][-1], indent=4), flush=True)
-            success = False
-            for check in reversed(resource["shape_info"]):
-                if check["message"] == "Import successful":
-                    # print(json.dumps(check, indent=4), flush=True)
-                    headers = [x["field_name"] for x in check["layer_fields"]]
-                    data_types = [
-                        SHAPE_INFO_DATA_TYPE_LOOKUP[x["data_type"]] for x in check["layer_fields"]
-                    ]
-                    header_hash = hash_row(headers)
-                    if header_hash not in schemas:
-                        schemas[header_hash] = {}
-                        schemas[header_hash]["sheet"] = "__DEFAULT__"
-                        schemas[header_hash]["shared_with"] = [resource["name"]]
-                        schemas[header_hash]["headers"] = headers
-                        schemas[header_hash]["hxl_headers"] = [""] * len(headers)
-                        schemas[header_hash]["data_types"] = data_types
-                    else:
-                        schemas[header_hash]["shared_with"].append(resource["name"])
-                    success = True
-                    break
-            if not success:
-                print(
-                    (
-                        f"\nError, could not find an 'Import successful' check "
-                        f"for {resource['name']}\n"
-                        f"final message was '{resource['shape_info'][-1]['message']}'"
-                    ),
-                    flush=True,
-                )
-                # print(json.dumps(resource["shape_info"], indent=4), flush=True)
+            check, error_message = get_last_complete_check(resource, "shape_info")
+
+            # print(json.dumps(check, indent=4), flush=True)
+            if error_message == "Success":
+                headers = [x["field_name"] for x in check["layer_fields"]]
+                data_types = [
+                    SHAPE_INFO_DATA_TYPE_LOOKUP[x["data_type"]] for x in check["layer_fields"]
+                ]
+                header_hash = hash_row(headers)
+                if header_hash not in schemas:
+                    schemas[header_hash] = {}
+                    schemas[header_hash]["sheet"] = "__DEFAULT__"
+                    schemas[header_hash]["shared_with"] = [resource["name"]]
+                    schemas[header_hash]["headers"] = headers
+                    schemas[header_hash]["hxl_headers"] = [""] * len(headers)
+                    schemas[header_hash]["data_types"] = data_types
+                else:
+                    schemas[header_hash]["shared_with"].append(resource["name"])
+
+        if error_message != "Success":
+            print(error_message, flush=True)
 
     return schemas
+
+
+def get_last_complete_check(resource_metadata: dict, metadata_key: str) -> tuple[dict, str]:
+    success = False
+    error_message = "Success"
+    fingerprint = (
+        "Import successful" if metadata_key == "shape_info" else "File structure check completed"
+    )
+    for check in reversed(resource_metadata[metadata_key]):
+        if check["message"] == fingerprint:
+            # print(json.dumps(check, indent=4), flush=True)
+            success = True
+            break
+    if not success:
+        error_message = (
+            f"\nError, could not find an {fingerprint} check "
+            f"for {resource_metadata['name']}\n"
+            f"final message was '{resource_metadata[metadata_key][-1]['message']}'"
+        )
+    return check, error_message
 
 
 def print_schema(schema: dict) -> list[dict]:

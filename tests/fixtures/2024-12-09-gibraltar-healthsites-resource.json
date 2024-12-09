@@ -1,0 +1,45 @@
+{
+    "gibraltar-healthsites-csv-with-hxl-tags": {
+        "format": "CSV",
+        "filename": "gibraltar_hxl.csv",
+        "in_quarantine": false,
+        "sheets": [
+            "__DEFAULT__ (n_columns:35 x n_rows:25)"
+        ]
+    },
+    "gibraltar-healthsites-shp": {
+        "format": "SHP",
+        "filename": "gibraltar-shapefiles.zip",
+        "in_quarantine": false,
+        "sheets": [
+            "__DEFAULT__ (n_columns:35 x n_rows:N/A)"
+        ],
+        "bounding_box": "BOX(-5.360211949624244 36.12558915715644,-5.349349506025561 36.15278843295448)"
+    },
+    "gibraltar-healthsites-geojson": {
+        "format": "GeoJSON",
+        "filename": "gibraltar.geojson",
+        "in_quarantine": false,
+        "sheets": [
+            "__DEFAULT__ (n_columns:35 x n_rows:N/A)"
+        ],
+        "bounding_box": "BOX(-5.360211949624244 36.12558915715644,-5.349349506025561 36.15278843295448)"
+    },
+    "gibraltar-healthsites-hxl-geojson": {
+        "format": "GeoJSON",
+        "filename": "gibraltar_hxl.geojson",
+        "in_quarantine": false,
+        "sheets": [
+            "__DEFAULT__ (n_columns:35 x n_rows:N/A)"
+        ],
+        "bounding_box": "BOX(-5.360211949624244 36.12558915715644,-5.349349506025561 36.15278843295448)"
+    },
+    "gibraltar-healthsites-csv": {
+        "format": "CSV",
+        "filename": "gibraltar.csv",
+        "in_quarantine": false,
+        "sheets": [
+            "__DEFAULT__ (n_columns:35 x n_rows:25)"
+        ]
+    }
+}
