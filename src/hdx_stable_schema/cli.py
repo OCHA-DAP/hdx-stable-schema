@@ -67,6 +67,8 @@ def show_schema(dataset_name: str):
             f"\n\tSheets: {', '.join(resource_summary[resource_name]['sheets'])}",
             flush=True,
         )
+        if "bounding_box" in resource_summary[resource_name].keys():
+            print(f"\tBounding box: {resource_summary[resource_name]['bounding_box']}", flush=True)
         if resource_summary[resource_name]["in_quarantine"]:
             print("\t**in quarantine**", flush=True)
         print(f"\tChecks ({len(checks)} file structure checks):", flush=True)

@@ -110,6 +110,31 @@ def summarise_resource(metadata: dict) -> dict:
                 print(
                     "Error, final fs_check_info is not 'File structure check completed'", flush=True
                 )
+        elif "shape_info" in resource.keys():
+            # print(json.dumps(resource["shape_info"][-1], indent=4), flush=True)
+            success = False
+            for check in reversed(resource["shape_info"]):
+                if check["message"] == "Import successful":
+                    sheet_name = "__DEFAULT__"
+                    ncols = len(check["layer_fields"])
+                    nrows = "N/A"
+                    resource_summary[resource["name"]]["sheets"].append(
+                        f"{sheet_name} (n_columns:{ncols} x n_rows:{nrows})"
+                    )
+                    resource_summary[resource["name"]]["bounding_box"] = check["bounding_box"]
+                    success = True
+                    break
+
+            if not success:
+                print(
+                    (
+                        f"\nError, could not find an 'Import successful' check "
+                        f"for {resource['name']}\n"
+                        f"final message was '{resource['shape_info'][-1]['message']}'"
+                    ),
+                    flush=True,
+                )
+
     return resource_summary
 
 
