@@ -102,6 +102,7 @@ def search_by_lucky_dip() -> dict:
 
 def summarise_resource(metadata: dict) -> dict:
     resource_summary = {}
+    error_message = "Neither fs_check_info nor shape_info found"
     for resource in metadata["result"]["resources"]:
         resource_summary[resource["name"]] = {}
         resource_summary[resource["name"]]["format"] = resource["format"]
@@ -154,7 +155,8 @@ def summarise_resource_changes(metadata: dict) -> dict:
                     change_indicator += f"{check['timestamp'][0:10]}"
                     if len(check["sheet_changes"]) != 0:
                         change_indicator += (
-                            f"* {len(check['sheet_changes'])} schema changes in field: "
+                            f"* {len(check['sheet_changes'])} schema changes in sheet "
+                            f"'{check['sheet_changes'][0]['name']}' field: "
                             f"{check['sheet_changes'][0]['changed_fields'][0]['field']}"
                         )
 
@@ -190,6 +192,7 @@ def summarise_resource_changes(metadata: dict) -> dict:
 
 def summarise_schema(metadata: dict) -> dict:
     schemas = {}
+    error_message = "Neither fs_check_info nor shape_info found"
     for resource in metadata["result"]["resources"]:
         if "fs_check_info" in resource.keys():
             check, error_message = get_last_complete_check(resource, "fs_check_info")
