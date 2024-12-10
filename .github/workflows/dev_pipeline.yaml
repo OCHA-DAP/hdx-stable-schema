@@ -1,4 +1,4 @@
-name: HDX CLI Toolkit CI
+name: HDX Stable Schema CLI
 
 on:
   push:
