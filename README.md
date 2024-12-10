@@ -25,6 +25,7 @@ Here are some sample commandlines which explore some datasets containing CSV or 
 hdx-schema show_schema --dataset_name=climada-litpop-dataset
 hdx-schema show_schema --dataset_name=explosive-weapons-use-affecting-aid-access-education-and-healthcare-services
 hdx-schema show_schema --dataset_name=who-data-for-mwi
+hdx-schema show_schema --dataset_name=syria-violent-and-threatening-incidents-against-healthcare
 ```
 
 This dataset contains both CSV and GeoJSON format data:

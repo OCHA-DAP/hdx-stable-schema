@@ -39,13 +39,17 @@ def read_metadata_from_file(file_path: str | Path) -> dict:
         assert len(metadata_dict["result"]["results"]) == 1
         metadata_dict["result"] = metadata_dict["result"]["results"][0]
 
+    reformat_metadata_keys(metadata_dict)
+
+    return metadata_dict
+
+
+def reformat_metadata_keys(metadata_dict):
     for resource in metadata_dict["result"]["resources"]:
         if "fs_check_info" in resource.keys():
             resource["fs_check_info"] = json.loads(resource["fs_check_info"])
         if "shape_info" in resource.keys():
             resource["shape_info"] = json.loads(resource["shape_info"])
-
-    return metadata_dict
 
 
 def read_metadata_from_hdx(dataset_name: str) -> dict:
@@ -56,11 +60,7 @@ def read_metadata_from_hdx(dataset_name: str) -> dict:
     response.raise_for_status()
 
     metadata_dict = response.json()
-    for resource in metadata_dict["result"]["resources"]:
-        if "fs_check_info" in resource.keys():
-            resource["fs_check_info"] = json.loads(resource["fs_check_info"])
-        if "shape_info" in resource.keys():
-            resource["shape_info"] = json.loads(resource["shape_info"])
+    reformat_metadata_keys(metadata_dict)
     return metadata_dict
 
 
@@ -79,7 +79,7 @@ def search_by_lucky_dip() -> dict:
     random_start = randrange(0, n_datasets)
     # query with offset (start) = random, limit (rows) = 1
     random_offset_params = {
-        "fq": "res_format:(CSV and XLS and XLSX)",
+        "fq": "res_format:(CSV and XLS and XLSX and GeoJSON)",
         "start": random_start,
         "rows": 1,
     }
@@ -91,11 +91,7 @@ def search_by_lucky_dip() -> dict:
     # We do this little trick to make a package_search response for 1 dataset look
     # like a package_show response
     metadata_dict["result"] = metadata_dict["result"]["results"][0]
-    for resource in metadata_dict["result"]["resources"]:
-        if "fs_check_info" in resource.keys():
-            resource["fs_check_info"] = json.loads(resource["fs_check_info"])
-        if "shape_info" in resource.keys():
-            resource["shape_info"] = json.loads(resource["shape_info"])
+    reformat_metadata_keys(metadata_dict)
 
     return metadata_dict
 
