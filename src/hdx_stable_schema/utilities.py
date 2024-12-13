@@ -7,6 +7,8 @@ import dataclasses
 
 import click
 
+from typing import Optional
+
 
 # This is borrowed from:
 # https://github.com/OCHA-DAP/hdx-cli-toolkit/blob/main/src/hdx_cli_toolkit/utilities.py
@@ -16,7 +18,7 @@ def print_table_from_list_of_dicts(
     included_fields: None | list[str] = None,
     truncate_width: int = 130,
     max_total_width: int = 150,
-) -> None:
+) -> dict:
     """A helper function to print a list of dictionaries as a table
 
     Arguments:
@@ -31,7 +33,7 @@ def print_table_from_list_of_dicts(
         max_total_width {int} -- total width of the table (default: {150})
     """
     if (len(column_data_rows)) == 0:
-        return
+        return None
     if dataclasses.is_dataclass(column_data_rows[0]):
         temp_data = []
         for row in column_data_rows:
@@ -54,6 +56,9 @@ def print_table_from_list_of_dicts(
         if max_field_width > truncate_width:
             column_table_header_dict[field] = truncate_width
 
+    # import json
+
+    # print(json.dumps(column_table_header_dict, indent=4), flush=True)
     total_width = (
         sum(v for k, v in column_table_header_dict.items() if k not in excluded_fields)
         + len(column_table_header_dict)
@@ -87,6 +92,8 @@ def print_table_from_list_of_dicts(
         print("|", flush=True)
 
     print("-" * total_width, flush=True)
+
+    return column_table_header_dict
 
 
 def print_list(list_: list, truncate_width: int = 130, max_total_width: int = 150):

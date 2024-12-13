@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import ast
+import datetime
 import pandas
 
+from collections import Counter
 from typing import Optional
+from hdx_stable_schema.utilities import print_table_from_list_of_dicts
+from hdx_stable_schema.metadata_processor import get_last_complete_check
 
 
 def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tuple[list[dict], str]:
@@ -31,4 +36,81 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
     except UnicodeDecodeError:
         error_message = f"Unicode error for URL {download_url}"
 
+    check, error_message = get_last_complete_check(resource_metadata, "fs_check_info")
+
+    is_hxlated = False
+    if len(check["hxl_proxy_response"]["sheets"]) == 1:
+        is_hxlated = check["hxl_proxy_response"]["sheets"][0]["is_hxlated"]
+    else:
+        print("More than 1 sheet, not implemented scanning for the right sheet", flush=True)
+        sys.exit()
+
+    if is_hxlated:
+        results = results[1:]
     return results, error_message
+
+
+def print_data_preview(rows: list[dict]) -> dict:
+    return print_table_from_list_of_dicts(rows)
+
+
+def field_types_from_rows(rows: list[dict], null_equivalents: Optional[list] = None) -> dict:
+    if null_equivalents is None:
+        null_equivalents = ["", None]
+    field_types = {}
+    for column_name in rows[0].keys():
+        column = [x[column_name] for x in rows]
+        field_type = field_type_from_column(column, null_equivalents=null_equivalents)
+        field_types[column_name] = field_type
+
+    return field_types
+
+
+def field_type_from_column(
+    column: list, null_equivalents: Optional[list] = None, strict: bool = False
+) -> str:
+    if null_equivalents is None:
+        null_equivalents = ["", None]
+    python_type_to_type = {
+        "str": "string",
+        "int": "integer",
+        "float": "float",
+        "DATE": "date",
+        "DATETIME": "datetime",
+    }
+
+    field_type = "TEXT"
+    type_counter = Counter()
+    for string in column:
+        if string in null_equivalents:
+            continue
+        try:
+            value = ast.literal_eval(f"{string}")
+            type_ = type(value).__name__
+        except (ValueError, SyntaxError):
+            type_ = "str"
+
+        if type_ == "str":
+            try:
+                datetime.datetime.strptime(string, "%Y-%m-%d")
+                type_ = "DATE"
+            except (ValueError, TypeError):
+                pass
+        if type_ == "str":
+            try:
+                datetime.datetime.fromisoformat(string)
+                type_ = "DATETIME"
+            except (ValueError, TypeError):
+                pass
+        if isinstance(string, datetime.datetime):
+            type_ = "DATETIME"
+        type_counter[type_] += 1
+
+    if set(type_counter.keys()) == set(["float", "int"]):
+        field_type = "FLOAT"
+    elif strict and len(type_counter) != 1:
+        field_type = "TEXT"
+    else:
+        field_type = python_type_to_type[type_counter.most_common(1)[0][0]]
+
+    return field_type
