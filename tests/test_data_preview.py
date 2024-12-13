@@ -25,7 +25,6 @@ ROWS, ERROR_MESSAGE = get_data_from_hdx(RESOURCE_METADATA, sheet_name=None)
 
 
 def test_get_data_from_hdx():
-
     assert ERROR_MESSAGE == "Success"
     assert len(ROWS) == 24
     assert ROWS[0] == {
