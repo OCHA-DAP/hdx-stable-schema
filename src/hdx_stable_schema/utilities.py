@@ -2,12 +2,11 @@
 # encoding: utf-8
 
 import datetime
+import json
 import math
 import dataclasses
 
 import click
-
-from typing import Optional
 
 
 # This is borrowed from:
@@ -69,9 +68,11 @@ def print_table_from_list_of_dicts(
         print(
             f"\nCalculated total_width of {total_width} "
             f"exceeds proposed max_total_width of {max_total_width}. "
-            "The resulting table may be unattractive.",
+            "Showing first row as a dictionary",
             flush=True,
         )
+        print(json.dumps(column_data_rows[0], indent=4), flush=True)
+        return column_table_header_dict
 
     print("-" * total_width, flush=True)
 

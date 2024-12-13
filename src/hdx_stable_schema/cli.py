@@ -6,6 +6,7 @@ import sys
 import click
 import requests
 
+from random import randrange
 from hdx_stable_schema.metadata_processor import (
     read_metadata_from_hdx,
     search_by_lucky_dip,
@@ -123,9 +124,18 @@ def preview_resource(dataset_name: str, resource_name: str):
                 raise
     else:
         metadata = search_by_lucky_dip()
+        resource_name = metadata["result"]["resources"][
+            randrange(0, len(metadata["result"]["resources"]))
+        ]["name"]
+
+    # Print Resource Overview
+    dataset_name = metadata["result"]["name"]
+    print_banner(
+        [f"Dataset name: {dataset_name}", f"Resource name: {resource_name}", "Resource Overview"]
+    )
 
     # Derive summaries
-
+    print("\nCollecting metadata...", flush=True)
     resource_summary = summarise_resource(metadata)
     resource_changes = summarise_resource_changes(metadata)
     schemas = summarise_schema(metadata)
@@ -140,9 +150,12 @@ def preview_resource(dataset_name: str, resource_name: str):
         f"Resource '{resource_name}' not " f"found in dataset '{dataset_name}'"
     )
 
+    print("\nDownloading data preview...", flush=True)
     preview_data, error_message = get_data_from_hdx(resource_metadata, None)
+    if error_message != "Success":
+        print(error_message, flush=True)
+        sys.exit()
 
-    assert error_message == "Success", "Failed to load preview data"
     # Decorate Data Dictionary with data types
     field_types = field_types_from_rows(preview_data)
     for _, schema in schemas.items():
@@ -150,11 +163,7 @@ def preview_resource(dataset_name: str, resource_name: str):
             schema["data_types"] = [v for k, v in field_types.items()]
             break
 
-    # Print Resource Overview
-    print_banner(
-        [f"Dataset name: {dataset_name}", f"Resource name: {resource_name}", "Resource Overview"]
-    )
-
+    print("\nResource summary:", flush=True)
     print_resource_summary(resource_summary, resource_changes, target_resource_name=resource_name)
 
     # Print Data Dictionary

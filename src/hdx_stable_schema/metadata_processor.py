@@ -238,17 +238,24 @@ def get_last_complete_check(resource_metadata: dict, metadata_key: str) -> tuple
     fingerprint = (
         "Import successful" if metadata_key == "shape_info" else "File structure check completed"
     )
+    if metadata_key not in resource_metadata:
+        error_message = f"metadata_key '{metadata_key}' not found in resource metadata"
+        check = {}
+        return check, error_message
+
     for check in reversed(resource_metadata[metadata_key]):
         if check["message"] == fingerprint:
             # print(json.dumps(check, indent=4), flush=True)
             success = True
             break
+
     if not success:
         error_message = (
-            f"\nError, could not find an {fingerprint} check "
+            f"\nError, could not find an '{fingerprint}' check "
             f"for {resource_metadata['name']}\n"
             f"final message was '{resource_metadata[metadata_key][-1]['message']}'"
         )
+        check = {}
     return check, error_message
 
 

@@ -3,6 +3,7 @@
 
 import ast
 import datetime
+import sys
 import pandas
 
 from collections import Counter
@@ -28,6 +29,17 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
             error_message = f"Data in file format {file_format} not supported"
         dataframe = dataframe.astype(str)
         results = dataframe.to_dict("records")
+        is_hxlated = False
+        check, error_message = get_last_complete_check(resource_metadata, "fs_check_info")
+        if "hxl_proxy_response" in check:
+            if len(check["hxl_proxy_response"]["sheets"]) == 1:
+                is_hxlated = check["hxl_proxy_response"]["sheets"][0]["is_hxlated"]
+            else:
+                print("More than 1 sheet, not implemented scanning for the right sheet", flush=True)
+                sys.exit()
+
+        if is_hxlated:
+            results = results[1:]
 
     except FileNotFoundError:
         error_message = f"Resource not found for URL {download_url}"
@@ -35,18 +47,12 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
         error_message = f"Resource could not be parsed for URL {download_url}"
     except UnicodeDecodeError:
         error_message = f"Unicode error for URL {download_url}"
+    except (UnboundLocalError, ValueError):
+        error_message = (
+            f"Unknown failure for resource_name '{resource_metadata['name']}' "
+            f"with download_url {resource_metadata['download_url']}"
+        )
 
-    check, error_message = get_last_complete_check(resource_metadata, "fs_check_info")
-
-    is_hxlated = False
-    if len(check["hxl_proxy_response"]["sheets"]) == 1:
-        is_hxlated = check["hxl_proxy_response"]["sheets"][0]["is_hxlated"]
-    else:
-        print("More than 1 sheet, not implemented scanning for the right sheet", flush=True)
-        sys.exit()
-
-    if is_hxlated:
-        results = results[1:]
     return results, error_message
 
 
@@ -107,9 +113,9 @@ def field_type_from_column(
         type_counter[type_] += 1
 
     if set(type_counter.keys()) == set(["float", "int"]):
-        field_type = "FLOAT"
+        field_type = "float"
     elif strict and len(type_counter) != 1:
-        field_type = "TEXT"
+        field_type = "string"
     else:
         field_type = python_type_to_type[type_counter.most_common(1)[0][0]]
 
