@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import json
 from pathlib import Path
 
 from hdx_stable_schema.data_preview import (
