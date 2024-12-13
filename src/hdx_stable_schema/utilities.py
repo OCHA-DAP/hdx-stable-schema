@@ -71,7 +71,7 @@ def print_table_from_list_of_dicts(
             "Showing first row as a dictionary",
             flush=True,
         )
-        print(json.dumps(column_data_rows[0], indent=4), flush=True)
+        print_dictionary(column_data_rows[0])
         return column_table_header_dict
 
     print("-" * total_width, flush=True)
@@ -119,3 +119,23 @@ def print_banner(list_: list[str]):
         click.secho(f"* {item:<{width}} *", bold=True)
     click.secho(f"* {timestamp:<{width}} *", bold=True)
     click.secho((width + 4) * "*", bold=True)
+
+
+def print_dictionary(dictionary: dict):
+    max_key_width = max([len(k) for k, _ in dictionary.items()]) + 2
+    max_value_width = max([len(v) for _, v in dictionary.items()]) + 2
+
+    total_width = max_key_width + max_value_width
+    print("-" * (total_width + 2), flush=True)
+    print(
+        f"|{'Column':<{max_key_width}.{max_key_width}}|{'Value':<{max_value_width}.{max_value_width}}|",
+        flush=True,
+    )
+    print("-" * (total_width + 2), flush=True)
+    for k, v in dictionary.items():
+        print(
+            f"|{k:<{max_key_width}.{max_key_width}}|{v:<{max_value_width}.{max_value_width}}|",
+            flush=True,
+        )
+
+    print("-" * (total_width + 2), flush=True)
