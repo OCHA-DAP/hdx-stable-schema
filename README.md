@@ -10,6 +10,17 @@ python -m venv venv
 source venv/Scripts/activate
 ```
 
+`hdx-stable-schema` uses `geopandas` to provide support for geographic file formats which itself depends on `GDAL` which is notorious with regard to installation. On the developers Windows machine
+the best approach is to download a precompiled wheel from this URL:
+
+https://www.lfd.uci.edu/~gohlke/pythonlibs/
+
+This is found in the `bin` directory of this repo and is installed with `pip`:
+
+```shell
+pip install GDAL-3.4.3-cp311-cp311-win_amd64.whl
+```
+
 And then an editable installation created:
 
 ```shell
@@ -18,6 +29,25 @@ pip install -e .
 
 
 ## Usage
+
+The functionality of this library is exposed in a `click` based CLI, the help for which is as follows:
+
+```
+$ hdx-schema --help
+Usage: hdx-schema [OPTIONS] COMMAND [ARGS]...
+
+  Tools for exploring resource schema in HDX
+
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
+Commands:
+  preview_resource  Show a dataset with schema markup
+  show_schema       Show a resource view with a Data Dictionary and a...
+```
+
+hdx-schema preview_resource --dataset_name=gibraltar-healthsites --resource_name=gibraltar-healthsites-geojson
 
 Here are some sample commandlines which explore some datasets containing CSV or XLSX format data:
 

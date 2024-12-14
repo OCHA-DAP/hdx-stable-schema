@@ -22,6 +22,7 @@ SHAPE_INFO_DATA_TYPE_LOOKUP = {
     "USER-DEFINED": "user-defined",
     "timestamp with time zone": "timestamp",
     "date": "date",
+    "ARRAY": "list",
 }
 
 
@@ -68,7 +69,7 @@ def search_by_lucky_dip() -> dict:
     # log.info('Lucky dip query')
     # Call package search to get a number of datasets (we could hard code this) - filter to
     query_url = f"{CKAN_API_ROOT_URL}package_search"
-    count_params = {"fq": "res_format:(CSV and XLS and XLSX)"}
+    count_params = {"fq": "res_format:(CSV and XLS and XLSX and GeoJSON)"}
     response = requests.get(query_url, params=count_params, timeout=20)
 
     response.raise_for_status()

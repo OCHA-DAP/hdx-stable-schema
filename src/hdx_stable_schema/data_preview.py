@@ -5,6 +5,8 @@ import ast
 import datetime
 import sys
 import pandas
+import geopandas
+import requests
 
 from collections import Counter
 from typing import Optional
@@ -17,6 +19,7 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
     file_format = resource_metadata["format"]
     results = []
     error_message = "Success"
+    metadata_key = "fs_check_info"
     try:
         if file_format.upper() in ["XLS", "XLSX"]:
             if sheet_name is None:
@@ -25,12 +28,16 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
                 dataframe = pandas.read_excel(download_url, sheet_name=sheet_name)
         elif file_format == "CSV":
             dataframe = pandas.read_csv(download_url)
+        elif file_format in ["GeoJSON", "SHP"]:
+            metadata_key = "shape_info"
+            response = requests.get(download_url)
+            dataframe = geopandas.read_file(response.content, driver="GeoJSON")
         else:
             error_message = f"Data in file format {file_format} not supported"
         dataframe = dataframe.astype(str)
         results = dataframe.to_dict("records")
         is_hxlated = False
-        check, error_message = get_last_complete_check(resource_metadata, "fs_check_info")
+        check, error_message = get_last_complete_check(resource_metadata, metadata_key)
         if "hxl_proxy_response" in check:
             if len(check["hxl_proxy_response"]["sheets"]) == 1:
                 is_hxlated = check["hxl_proxy_response"]["sheets"][0]["is_hxlated"]

@@ -28,7 +28,7 @@ from hdx_stable_schema.data_preview import (
 @click.group()
 @click.version_option()
 def hdx_schema() -> None:
-    """Tools for exploring schema in HDX"""
+    """Tools for exploring resource schema in HDX"""
 
 
 # Fetch sample dataset metadata with:
@@ -43,7 +43,7 @@ def hdx_schema() -> None:
     help="a dataset name or pattern on which to filter list",
 )
 def show_schema(dataset_name: str):
-    """Show a dataset with schema markup"""
+    """Show a resource view with a Data Dictionary and a data preview"""
 
     # Get some metadata some how
     if dataset_name is not None:
@@ -124,9 +124,11 @@ def preview_resource(dataset_name: str, resource_name: str):
                 raise
     else:
         metadata = search_by_lucky_dip()
-        resource_name = metadata["result"]["resources"][
-            randrange(0, len(metadata["result"]["resources"]))
-        ]["name"]
+        resource_name = None
+        for resource in metadata["result"]["resources"]:
+            if resource["format"].lower() in ["csv", "xslx", "csv", "geojson"]:
+                resource_name = resource["name"]
+                break
 
     # Print Resource Overview
     dataset_name = metadata["result"]["name"]
@@ -157,10 +159,15 @@ def preview_resource(dataset_name: str, resource_name: str):
         sys.exit()
 
     # Decorate Data Dictionary with data types
-    field_types = field_types_from_rows(preview_data)
+    add_data_types = False
+    if resource_metadata["format"].lower() in ["csv", "xlsx", "xls"]:
+        field_types = field_types_from_rows(preview_data)
+        add_data_types = True
+
     for _, schema in schemas.items():
         if resource_name in schema["shared_with"]:
-            schema["data_types"] = [v for k, v in field_types.items()]
+            if add_data_types:
+                schema["data_types"] = [v for k, v in field_types.items()]
             break
 
     print("\nResource summary:", flush=True)
