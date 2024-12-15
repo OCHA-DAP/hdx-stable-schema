@@ -36,7 +36,7 @@ def print_table_from_list_of_dicts(
         max_total_width {int} -- total width of the table (default: {150})
     """
     if (len(column_data_rows)) == 0:
-        return None
+        return {}
     if dataclasses.is_dataclass(column_data_rows[0]):
         temp_data = []
         for row in column_data_rows:
@@ -132,7 +132,8 @@ def print_dictionary(dictionary: dict):
     total_width = max_key_width + max_value_width
     print("-" * (total_width + 2), flush=True)
     print(
-        f"|{'Column':<{max_key_width}.{max_key_width}}|{'Value':<{max_value_width}.{max_value_width}}|",
+        f"|{'Column':<{max_key_width}.{max_key_width}}|"
+        f"{'Value':<{max_value_width}.{max_value_width}}|",
         flush=True,
     )
     print("-" * (total_width + 2), flush=True)
