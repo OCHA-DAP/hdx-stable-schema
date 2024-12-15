@@ -125,11 +125,16 @@ def print_banner(list_: list[str]):
     click.secho((width + 4) * "*", bold=True)
 
 
-def print_dictionary(dictionary: dict):
+def print_dictionary(dictionary: dict, truncate_width: int = 100):
     max_key_width = max([len(k) for k, _ in dictionary.items()]) + 2
     max_value_width = max([len(v) for _, v in dictionary.items()]) + 2
 
+    if max_key_width > truncate_width:
+        max_key_width = truncate_width
+    if max_value_width > truncate_width:
+        max_value_width = truncate_width
     total_width = max_key_width + max_value_width
+
     print("-" * (total_width + 2), flush=True)
     print(
         f"|{'Column':<{max_key_width}.{max_key_width}}|"
@@ -138,6 +143,8 @@ def print_dictionary(dictionary: dict):
     )
     print("-" * (total_width + 2), flush=True)
     for k, v in dictionary.items():
+        if len(v) > truncate_width:
+            v = f"{v:<{max_value_width-3}.{max_value_width-3}}..."
         print(
             f"|{k:<{max_key_width}.{max_key_width}}|{v:<{max_value_width}.{max_value_width}}|",
             flush=True,
