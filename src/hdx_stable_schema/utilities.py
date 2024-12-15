@@ -2,11 +2,15 @@
 # encoding: utf-8
 
 import datetime
-import json
 import math
 import dataclasses
+import sys
+
+from pathlib import Path
+from typing import Optional
 
 import click
+import requests
 
 
 # This is borrowed from:
@@ -139,3 +143,33 @@ def print_dictionary(dictionary: dict):
         )
 
     print("-" * (total_width + 2), flush=True)
+
+
+# Basis borrowed from
+# https://stackoverflow.com/a/15645088/19172
+def download_from_url(url: str, filename: Optional[str] = None):
+    download_directory = Path(__file__).parent / "downloads"
+    Path(download_directory).mkdir(parents=True, exist_ok=True)
+    if filename is None:
+        filename = url.split("/")[-1]
+
+    download_file_path = download_directory / filename
+
+    with open(download_file_path, "wb") as output_file:
+        print(f"Downloading {filename}", flush=True)
+        response = requests.get(url, stream=True)
+        total_length = response.headers.get("content-length")
+
+        if total_length is None:  # no content length header
+            output_file.write(response.content)
+        else:
+            dl = 0
+            total_length = int(total_length)
+            for data in response.iter_content(chunk_size=4096):
+                dl += len(data)
+                output_file.write(data)
+                done = int(50 * dl / total_length)
+                sys.stdout.write("\r[%s%s]" % ("=" * done, " " * (50 - done)))
+                sys.stdout.flush()
+
+    return download_file_path

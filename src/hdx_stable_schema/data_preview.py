@@ -3,14 +3,14 @@
 
 import ast
 import datetime
+import os
 import sys
 import pandas
 import geopandas
-import requests
 
 from collections import Counter
 from typing import Optional
-from hdx_stable_schema.utilities import print_table_from_list_of_dicts
+from hdx_stable_schema.utilities import print_table_from_list_of_dicts, download_from_url
 from hdx_stable_schema.metadata_processor import get_last_complete_check
 
 
@@ -30,8 +30,11 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
             dataframe = pandas.read_csv(download_url)
         elif file_format in ["GeoJSON", "SHP"]:
             metadata_key = "shape_info"
-            response = requests.get(download_url)
-            dataframe = geopandas.read_file(response.content, driver="GeoJSON")
+            # response = requests.get(download_url)
+            local_file_path = download_from_url(download_url)
+            dataframe = geopandas.read_file(local_file_path)
+            if os.path.exists(local_file_path):
+                os.remove(local_file_path)
         else:
             error_message = f"Data in file format {file_format} not supported"
         dataframe = dataframe.astype(str)
