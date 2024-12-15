@@ -4,9 +4,14 @@
 import ast
 import datetime
 import os
+import pathlib
+import shutil
 import sys
 import pandas
 import geopandas
+
+from pathlib import Path
+
 
 from collections import Counter
 from typing import Optional
@@ -30,11 +35,9 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
             dataframe = pandas.read_csv(download_url)
         elif file_format in ["GeoJSON", "SHP"]:
             metadata_key = "shape_info"
-            # response = requests.get(download_url)
             local_file_path = download_from_url(download_url)
-            dataframe = geopandas.read_file(local_file_path)
-            if os.path.exists(local_file_path):
-                os.remove(local_file_path)
+            dataframe = load_dataframe_from_local_path(local_file_path, file_format)
+            shutil.rmtree(Path(local_file_path).parent)
         else:
             error_message = f"Data in file format {file_format} not supported"
         dataframe = dataframe.astype(str)
@@ -57,11 +60,11 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
         error_message = f"Resource could not be parsed for URL {download_url}"
     except UnicodeDecodeError:
         error_message = f"Unicode error for URL {download_url}"
-    except (UnboundLocalError, ValueError):
-        error_message = (
-            f"Unknown failure for resource_name '{resource_metadata['name']}' "
-            f"with download_url {resource_metadata['download_url']}"
-        )
+    # except (UnboundLocalError, ValueError):
+    #     error_message = (
+    #         f"Unknown failure for resource_name '{resource_metadata['name']}' "
+    #         f"with download_url {resource_metadata['download_url']}"
+    #     )
 
     return results, error_message
 
@@ -130,3 +133,20 @@ def field_type_from_column(
         field_type = python_type_to_type[type_counter.most_common(1)[0][0]]
 
     return field_type
+
+
+def load_dataframe_from_local_path(local_file_path, file_format) -> geopandas.GeoDataFrame:
+    import zipfile
+
+    if str(local_file_path).lower().endswith(".zip"):
+        unzip_directory = Path(local_file_path).parent
+        with zipfile.ZipFile(local_file_path, "r") as zip_file:
+            zip_file.extractall(unzip_directory)
+        geo_files = sorted(pathlib.Path(unzip_directory).glob(f"**/*.{file_format}"))
+        print(geo_files, flush=True)
+        assert len(geo_files) == 1, "Got more than one file of the right format from a zip"
+        local_file_path = geo_files[0]
+
+    dataframe = geopandas.read_file(local_file_path)
+
+    return dataframe

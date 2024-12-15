@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import geopandas
-
 from pathlib import Path
 
 from hdx_stable_schema.data_preview import (
@@ -68,7 +66,7 @@ def test_get_data_from_hdx():
     }
 
 
-def test_get_data_from_hdx_format():
+def test_get_data_from_hdx_geojson_format():
     geojson_metadata = METADATA["result"]["resources"][2]
     assert geojson_metadata["format"] == "GeoJSON"
     _, error_message = get_data_from_hdx(geojson_metadata, None)
@@ -76,11 +74,16 @@ def test_get_data_from_hdx_format():
     assert error_message == "Success"
 
 
-def test_read_shp_format():
-    shp_path = Path(__file__).parent / "fixtures" / "gibraltar-shp" / "gibraltar.shp"
-    dataframe = geopandas.read_file(shp_path)
+def test_get_data_from_hdx_zipped_shp_format():
+    for zipped_shp_metadata in METADATA["result"]["resources"]:
+        if zipped_shp_metadata["format"].lower() == "shp" and zipped_shp_metadata[
+            "download_url"
+        ].lower().endswith(".zip"):
+            break
 
-    assert not dataframe.empty
+    _, error_message = get_data_from_hdx(zipped_shp_metadata, None)
+
+    assert error_message == "Success"
 
 
 def test_field_types_from_rows():

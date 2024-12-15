@@ -150,6 +150,7 @@ def print_dictionary(dictionary: dict):
 def download_from_url(url: str, filename: Optional[str] = None):
     download_directory = Path(__file__).parent / "downloads"
     Path(download_directory).mkdir(parents=True, exist_ok=True)
+
     if filename is None:
         filename = url.split("/")[-1]
 
