@@ -6,7 +6,6 @@ import sys
 import click
 import requests
 
-from random import randrange
 from hdx_stable_schema.metadata_processor import (
     read_metadata_from_hdx,
     search_by_lucky_dip,
@@ -72,8 +71,11 @@ def show_schema(dataset_name: str):
 
     # Print Dataset intro
     print_banner([metadata["result"]["title"], "Dataset Overview"])
-    print(f"Dataset name: {metadata['result']['name']}", flush=True)
-
+    # Rerun command
+    print(
+        "Rerun command: \nhdx-schema show_dataset "
+        f"--dataset_name='{metadata['result']['name']}'\n"
+    )
     # Print Resource list
     print("Resource list:", flush=True)
     print_resource_summary(resource_summary, resource_changes)
@@ -125,8 +127,11 @@ def preview_resource(dataset_name: str, resource_name: str):
     else:
         metadata = search_by_lucky_dip()
         resource_name = None
+
+    if resource_name is None:
         for resource in metadata["result"]["resources"]:
-            if resource["format"].lower() in ["csv", "xslx", "csv", "geojson"]:
+            print(resource["name"], resource["format"], flush=True)
+            if resource["format"].lower() in ["csv", "xlsx", "csv", "geojson"]:
                 resource_name = resource["name"]
                 break
 
@@ -136,6 +141,12 @@ def preview_resource(dataset_name: str, resource_name: str):
         [f"Dataset name: {dataset_name}", f"Resource name: {resource_name}", "Resource Overview"]
     )
 
+    # Rerun command
+    print(
+        "Rerun command: \nhdx-schema preview_resource "
+        f"--dataset_name='{dataset_name}' "
+        f"--resource_name='{resource_name}'"
+    )
     # Derive summaries
     print("\nCollecting metadata...", flush=True)
     resource_summary = summarise_resource(metadata)

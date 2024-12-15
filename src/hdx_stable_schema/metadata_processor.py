@@ -151,11 +151,18 @@ def summarise_resource_changes(metadata: dict) -> dict:
                 if check["message"] == "File structure check completed":
                     change_indicator += f"{check['timestamp'][0:10]}"
                     if len(check["sheet_changes"]) != 0:
-                        change_indicator += (
-                            f"* {len(check['sheet_changes'])} schema changes in sheet "
-                            f"'{check['sheet_changes'][0]['name']}' field: "
-                            f"{check['sheet_changes'][0]['changed_fields'][0]['field']}"
-                        )
+                        if check["sheet_changes"][0]["event_type"] == "spreadsheet-sheet-changed":
+                            change_indicator += (
+                                f"* {len(check['sheet_changes'])} schema changes in sheet "
+                                f"'{check['sheet_changes'][0]['name']}' field: "
+                                f"{check['sheet_changes'][0]['changed_fields'][0]['field']}"
+                            )
+                        else:
+                            change_indicator += (
+                                f"* {len(check['sheet_changes'])} schema changes in sheet "
+                                f"'{check['sheet_changes'][0]['name']}' - "
+                                f"{check['sheet_changes'][0]['event_type']}"
+                            )
 
                     resource_changes[resource["name"]]["checks"].extend([change_indicator])
         elif "shape_info" in resource.keys():
@@ -245,16 +252,19 @@ def get_last_complete_check(resource_metadata: dict, metadata_key: str) -> tuple
         return check, error_message
 
     for check in reversed(resource_metadata[metadata_key]):
-        if check["message"] == fingerprint:
-            # print(json.dumps(check, indent=4), flush=True)
-            success = True
-            break
+        try:
+            if check["message"] == fingerprint:
+                # print(json.dumps(check, indent=4), flush=True)
+                success = True
+                break
+        except TypeError:
+            success = False
 
     if not success:
         error_message = (
             f"\nError, could not find an '{fingerprint}' check "
             f"for {resource_metadata['name']}\n"
-            f"final message was '{resource_metadata[metadata_key][-1]['message']}'"
+            f"final message was '{check}'"
         )
         check = {}
     return check, error_message

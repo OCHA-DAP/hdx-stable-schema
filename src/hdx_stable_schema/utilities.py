@@ -147,30 +147,33 @@ def print_dictionary(dictionary: dict):
 
 # Basis borrowed from
 # https://stackoverflow.com/a/15645088/19172
-def download_from_url(url: str, filename: Optional[str] = None):
+def download_from_url(url: str, filename: Optional[str] = None) -> tuple[Path, str]:
     download_directory = Path(__file__).parent / "downloads"
     Path(download_directory).mkdir(parents=True, exist_ok=True)
-
+    error_message = "Success"
     if filename is None:
         filename = url.split("/")[-1]
 
     download_file_path = download_directory / filename
 
-    with open(download_file_path, "wb") as output_file:
-        print(f"Downloading {filename}", flush=True)
-        response = requests.get(url, stream=True)
-        total_length = response.headers.get("content-length")
+    try:
+        with open(download_file_path, "wb") as output_file:
+            print(f"Downloading {filename}", flush=True)
+            response = requests.get(url, stream=True)
+            total_length = response.headers.get("content-length")
 
-        if total_length is None:  # no content length header
-            output_file.write(response.content)
-        else:
-            dl = 0
-            total_length = int(total_length)
-            for data in response.iter_content(chunk_size=4096):
-                dl += len(data)
-                output_file.write(data)
-                done = int(50 * dl / total_length)
-                sys.stdout.write("\r[%s%s]" % ("=" * done, " " * (50 - done)))
-                sys.stdout.flush()
+            if total_length is None:  # no content length header
+                output_file.write(response.content)
+            else:
+                dl = 0
+                total_length = int(total_length)
+                for data in response.iter_content(chunk_size=4096):
+                    dl += len(data)
+                    output_file.write(data)
+                    done = int(50 * dl / total_length)
+                    sys.stdout.write("\r[%s%s]" % ("=" * done, " " * (50 - done)))
+                    sys.stdout.flush()
+    except OSError:
+        error_message = f"{download_file_path} is not a valid file path"
 
-    return download_file_path
+    return download_file_path, error_message

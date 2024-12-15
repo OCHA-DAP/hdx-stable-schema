@@ -3,10 +3,11 @@
 
 import ast
 import datetime
-import os
 import pathlib
 import shutil
 import sys
+import zipfile
+
 import pandas
 import geopandas
 
@@ -35,8 +36,11 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
             dataframe = pandas.read_csv(download_url)
         elif file_format in ["GeoJSON", "SHP"]:
             metadata_key = "shape_info"
-            local_file_path = download_from_url(download_url)
-            dataframe = load_dataframe_from_local_path(local_file_path, file_format)
+            local_file_path, error_message = download_from_url(download_url)
+            if error_message == "Success":
+                dataframe, error_message = load_dataframe_from_local_path(
+                    str(local_file_path), file_format
+                )
             shutil.rmtree(Path(local_file_path).parent)
         else:
             error_message = f"Data in file format {file_format} not supported"
@@ -55,16 +59,30 @@ def get_data_from_hdx(resource_metadata: dict, sheet_name: Optional[str]) -> tup
             results = results[1:]
 
     except FileNotFoundError:
-        error_message = f"Resource not found for URL {download_url}"
+        error_message = (
+            f"Resource not found for URL {download_url}"
+            if error_message == "Success"
+            else error_message
+        )
     except pandas.errors.ParserError:
-        error_message = f"Resource could not be parsed for URL {download_url}"
+        error_message = (
+            f"Resource could not be parsed for URL {download_url}"
+            if error_message == "Success"
+            else error_message
+        )
     except UnicodeDecodeError:
-        error_message = f"Unicode error for URL {download_url}"
-    # except (UnboundLocalError, ValueError):
-    #     error_message = (
-    #         f"Unknown failure for resource_name '{resource_metadata['name']}' "
-    #         f"with download_url {resource_metadata['download_url']}"
-    #     )
+        error_message = (
+            f"Unicode error for URL {download_url}" if error_message == "Success" else error_message
+        )
+    except (UnboundLocalError, ValueError):
+        error_message = (
+            (
+                f"Unknown failure for resource_name '{resource_metadata['name']}' "
+                f"with download_url {resource_metadata['download_url']}"
+            )
+            if error_message == "Success"
+            else error_message
+        )
 
     return results, error_message
 
@@ -94,6 +112,8 @@ def field_type_from_column(
         "str": "string",
         "int": "integer",
         "float": "float",
+        "bool": "bool",
+        "list": "list",
         "DATE": "date",
         "DATETIME": "datetime",
     }
@@ -135,18 +155,18 @@ def field_type_from_column(
     return field_type
 
 
-def load_dataframe_from_local_path(local_file_path, file_format) -> geopandas.GeoDataFrame:
-    import zipfile
-
+def load_dataframe_from_local_path(
+    local_file_path: str, file_format: str
+) -> tuple[geopandas.GeoDataFrame, str]:
+    error_message = "Success"
     if str(local_file_path).lower().endswith(".zip"):
         unzip_directory = Path(local_file_path).parent
         with zipfile.ZipFile(local_file_path, "r") as zip_file:
             zip_file.extractall(unzip_directory)
         geo_files = sorted(pathlib.Path(unzip_directory).glob(f"**/*.{file_format}"))
-        print(geo_files, flush=True)
-        assert len(geo_files) == 1, "Got more than one file of the right format from a zip"
-        local_file_path = geo_files[0]
+        error_message = "Got more than one file of the right format from a zip"
+        local_file_path = str(geo_files[0])
 
     dataframe = geopandas.read_file(local_file_path)
 
-    return dataframe
+    return dataframe, error_message
