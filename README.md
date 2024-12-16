@@ -72,6 +72,12 @@ hdx-schema show_schema --dataset_name=hotosm_npl_financial_services
 hdx-schema show_schema --dataset_name=kenya_current_situation_fewsnet_ipc_classification
 ```
 
+This resource has multiple simulataneous sheet changes:
+
+```
+hdx-schema preview_resource --dataset_name='eswatini-mpi' --resource_name='Eswatini MPI and Partial Indices'
+```
+
 Example output from `hdx-schema show_schema --dataset_name=gibraltar-healthsites`
 
 ```
