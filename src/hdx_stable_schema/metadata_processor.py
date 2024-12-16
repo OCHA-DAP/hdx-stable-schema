@@ -147,24 +147,27 @@ def summarise_resource_changes(metadata: dict) -> dict:
 
         if "fs_check_info" in resource.keys():
             for check in resource["fs_check_info"]:
-                change_indicator = ""
                 if check["message"] == "File structure check completed":
-                    change_indicator += f"{check['timestamp'][0:10]}"
                     if len(check["sheet_changes"]) != 0:
-                        if check["sheet_changes"][0]["event_type"] == "spreadsheet-sheet-changed":
-                            change_indicator += (
-                                f"* {len(check['sheet_changes'])} schema changes in sheet "
-                                f"'{check['sheet_changes'][0]['name']}' field: "
-                                f"{check['sheet_changes'][0]['changed_fields'][0]['field']}"
-                            )
-                        else:
-                            change_indicator += (
-                                f"* {len(check['sheet_changes'])} schema changes in sheet "
-                                f"'{check['sheet_changes'][0]['name']}' - "
-                                f"{check['sheet_changes'][0]['event_type']}"
-                            )
+                        for change in check["sheet_changes"]:
+                            change_indicator = f"{check['timestamp'][0:10]}"
+                            if change["event_type"] == "spreadsheet-sheet-changed":
+                                change_indicator += (
+                                    f"* Schema changes in sheet "
+                                    f"'{change['name']}' field: "
+                                    f"{change['changed_fields'][0]['field']}"
+                                )
+                            else:
+                                change_indicator += (
+                                    f"* Schema changes in sheet "
+                                    f"'{change['name']}' - "
+                                    f"{change['event_type']}"
+                                )
 
-                    resource_changes[resource["name"]]["checks"].extend([change_indicator])
+                            resource_changes[resource["name"]]["checks"].extend([change_indicator])
+                    else:
+                        change_indicator = f"{check['timestamp'][0:10]}"
+                        resource_changes[resource["name"]]["checks"].extend([change_indicator])
         elif "shape_info" in resource.keys():
             previous_bounding_box = ""
             previous_headers = set()

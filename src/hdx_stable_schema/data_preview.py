@@ -164,7 +164,6 @@ def load_dataframe_from_local_path(
         with zipfile.ZipFile(local_file_path, "r") as zip_file:
             zip_file.extractall(unzip_directory)
         glob_path = str(Path(unzip_directory) / "**" / f"*.{file_format.lower()}")
-        print(f"glob_path: {glob_path}", flush=True)
         geo_files = sorted(glob.glob(glob_path))
         error_message = "Got more than one file of the right format from a zip"
         local_file_path = str(geo_files[0])
